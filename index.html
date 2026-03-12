@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PaperVault — 논문 관리</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Noto+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --bg-side: #090910;
+    --bg-main: #0a0a10;
+    --bg-header: #08080f;
+    --border: #1a1a2a;
+    --text: #e8e8f0;
+    --text-muted: #666;
+    --text-dim: #444;
+    --accent: #7766cc;
+    --accent-dark: #2d1f4a;
+    --accent-border: #6644aa;
+    --accent-light: #aa88ff;
+  }
+
+  html, body { height: 100%; overflow: hidden; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: #111; }
+  ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+  /* HEADER */
+  header {
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-header);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    gap: 16px;
+  }
+
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+    font-size: 24px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .logo span { color: var(--accent); }
+
+  .logo-sub {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-left: 10px;
+  }
+
+  .header-right { display: flex; gap: 10px; align-items: center; }
+
+  input[type="text"], textarea, select {
+    background: #111118;
+    border: 1px solid #2a2a3a;
+    color: var(--text);
+    padding: 9px 13px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: 'Noto Sans KR', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  input[type="text"]:focus, textarea:focus, select:focus { border-color: var(--accent); }
+
+  #search-input { width: 200px; }
+
+  button {
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+    border-radius: 8px;
+    font-size: 13px;
+    transition: all 0.2s;
+    border: none;
+  }
+
+  .btn { background: #2a2a40; border: 1px solid #3a3a55; color: #c4c4e0; padding: 8px 16px; }
+  .btn:hover { background: #333350; border-color: #5555aa; color: #fff; }
+
+  .btn-accent { background: var(--accent-dark); border: 1px solid var(--accent-border); color: var(--accent-light); padding: 8px 16px; }
+  .btn-accent:hover { background: #3d2860; color: #cc99ff; }
+
+  /* LAYOUT */
+  .layout { display: flex; flex: 1; overflow: hidden; }
+
+  /* SIDEBAR */
+  aside {
+    width: 290px;
+    flex-shrink: 0;
+    background: var(--bg-side);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .cat-bar {
+    padding: 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .cat-tab {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid #2a2a3a;
+    background: transparent;
+    color: #888;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .cat-tab:hover { border-color: #555; color: #ccc; }
+  .cat-tab.active { color: #fff; background: #1f1f30; border-color: #444; }
+
+  .add-cat-row { display: flex; gap: 6px; width: 100%; margin-top: 2px; }
+  .add-cat-row input { font-size: 11px; padding: 5px 10px; }
+  .add-cat-row button { font-size: 11px; padding: 5px 10px; white-space: nowrap; }
+
+  .paper-list { flex: 1; overflow-y: auto; }
+
+  .cat-header {
+    padding: 9px 14px 7px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+  }
+  .cat-count {
+    color: #fff;
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 9px;
+  }
+
+  .paper-item {
+    padding: 12px 14px;
+    border-left: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 1px solid #131318;
+    position: relative;
+  }
+  .paper-item:hover { background: #141420; border-left-color: #333; }
+  .paper-item.active { background: #1a1a28; }
+
+  .paper-item-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: #c8c8e0;
+    line-height: 1.4;
+    padding-right: 22px;
+  }
+  .paper-item.active .paper-item-title { color: var(--accent-light); }
+
+  .paper-item-summary {
+    font-size: 11px;
+    color: #555;
+    margin-top: 4px;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .paper-item-date { font-size: 10px; color: #333; margin-top: 5px; }
+
+  .delete-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    opacity: 0;
+    background: none;
+    border: none;
+    color: #555;
+    font-size: 16px;
+    padding: 0 4px;
+    border-radius: 4px;
+    line-height: 1;
+    transition: all 0.15s;
+  }
+  .paper-item:hover .delete-btn { opacity: 1; }
+  .delete-btn:hover { color: #e94560; background: #2a1020; }
+
+  .sidebar-stats {
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 20px;
+    background: #06060c;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .sidebar-stats span { color: var(--accent); font-weight: 600; }
+
+  .empty-list {
+    padding: 50px 20px;
+    text-align: center;
+    color: #2a2a3a;
+    font-size: 13px;
+  }
+  .empty-list .icon { font-size: 36px; margin-bottom: 10px; opacity: 0.4; }
+
+  /* MAIN */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg-main);
+  }
+
+  .main-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #1e1e28;
+  }
+  .main-empty .icon { font-size: 60px; margin-bottom: 16px; opacity: 0.25; }
+  .main-empty p { font-family: 'DM Serif Display', serif; font-style: italic; font-size: 16px; color: #2a2a3a; }
+
+  .paper-detail { flex: 1; display: flex; flex-direction: column; overflow: hidden; animation: fadeIn 0.25s ease; }
+
+  .detail-header {
+    padding: 22px 28px 18px;
+    border-bottom: 1px solid var(--border);
+    background: #09090f;
+    flex-shrink: 0;
+  }
+
+  .detail-header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+
+  .cat-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .detail-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 21px;
+    color: #e8e8f8;
+    line-height: 1.3;
+    margin-bottom: 7px;
+  }
+
+  .detail-summary { font-size: 13px; color: #666; line-height: 1.6; }
+  .detail-date { font-size: 10px; color: #333; margin-top: 7px; }
+
+  .detail-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+  .save-status { font-size: 12px; color: #66cc88; }
+
+  .notes-area { flex: 1; padding: 20px 28px; display: flex; flex-direction: column; overflow: hidden; }
+
+  .notes-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .notes-label .hint { font-size: 10px; color: #333; letter-spacing: 0; text-transform: none; }
+
+  #notes-view {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 16px;
+    background: #0d0d15;
+    border-radius: 8px;
+    border: 1px solid #1e1e2a;
+    cursor: text;
+    min-height: 0;
+  }
+
+  #notes-textarea {
+    flex: 1;
+    min-height: 0;
+    padding: 14px 16px;
+    background: #0d0d15;
+    border: 1px solid #2a2a3a;
+    color: #d0d0e8;
+    font-size: 13px;
+    font-family: 'DM Mono', monospace;
+    line-height: 1.7;
+    resize: none;
+    border-radius: 8px;
+    display: none;
+  }
+  #notes-textarea:focus { border-color: var(--accent); }
+
+  .notes-rendered { font-size: 13px; line-height: 1.8; color: #c0c0d8; font-family: 'DM Mono', monospace; }
+  .notes-rendered .h1 { color: #bbaaff; font-weight: 700; font-size: 16px; margin: 18px 0 7px; }
+  .notes-rendered .h2 { color: #9977dd; font-weight: 600; font-size: 14px; margin: 14px 0 5px; }
+  .notes-rendered .li { display: flex; gap: 8px; margin-bottom: 2px; }
+  .notes-rendered .li .bullet { color: #6644aa; flex-shrink: 0; }
+  .notes-rendered .blank { height: 8px; }
+  .notes-rendered .empty-note { text-align: center; padding: 50px 0; color: #222; font-size: 13px; }
+  .notes-rendered .empty-note .icon { font-size: 36px; display: block; margin-bottom: 10px; opacity: 0.3; }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(4px);
+    display: none;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: #0e0e1a;
+    border: 1px solid #2a2a40;
+    border-radius: 16px;
+    padding: 30px;
+    width: 500px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    animation: fadeIn 0.2s ease;
+  }
+
+  .modal h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    margin-bottom: 22px;
+    color: #e0e0f0;
+  }
+
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 11px; color: #666; letter-spacing: 1px; text-transform: uppercase; display: block; margin-bottom: 5px; }
+  .form-group textarea { min-height: 70px; resize: vertical; }
+
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Category colors */
+  .cc-0 { --c-bg: #1a1a2e; --c-accent: #e94560; --c-light: #ff6b8a; }
+  .cc-1 { --c-bg: #0f3460; --c-accent: #533483; --c-light: #a06cd5; }
+  .cc-2 { --c-bg: #16213e; --c-accent: #0f7173; --c-light: #2ec4b6; }
+  .cc-3 { --c-bg: #1b2838; --c-accent: #c97d4e; --c-light: #f4a261; }
+  .cc-4 { --c-bg: #1a1a1a; --c-accent: #6c757d; --c-light: #adb5bd; }
+  .cc-5 { --c-bg: #1c1c2e; --c-accent: #7c3aed; --c-light: #a78bfa; }
+  .cc-6 { --c-bg: #0d2137; --c-accent: #0ea5e9; --c-light: #38bdf8; }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:baseline">
+    <div class="logo">Paper<span>Vault</span></div>
+    <div class="logo-sub">논문 관리 시스템</div>
+  </div>
+  <div class="header-right">
+    <input type="text" id="search-input" placeholder="🔍 논문 검색..." oninput="render()">
+    <button class="btn-accent" onclick="openModal()">+ 논문 추가</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="cat-bar" id="cat-bar"></div>
+    <div class="paper-list" id="paper-list"></div>
+    <div class="sidebar-stats" id="stats"></div>
+  </aside>
+
+  <main id="main">
+    <div class="main-empty">
+      <div class="icon">📚</div>
+      <p>논문을 선택하세요</p>
+    </div>
+  </main>
+</div>
+
+<!-- Add Paper Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3>새 논문 추가</h3>
+    <div class="form-group">
+      <label class="form-label">카테고리</label>
+      <select id="form-cat"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">논문 제목 *</label>
+      <input type="text" id="form-title" placeholder="예: Attention Is All You Need">
+    </div>
+    <div class="form-group">
+      <label class="form-label">한 줄 요약</label>
+      <textarea id="form-summary" placeholder="논문의 핵심 내용을 간략하게..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">취소</button>
+      <button class="btn-accent" onclick="addPaper()">추가하기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────
+const COLOR_PALETTE = [
+  {bg:'#1a1a2e',accent:'#e94560',light:'#ff6b8a'},
+  {bg:'#0f3460',accent:'#533483',light:'#a06cd5'},
+  {bg:'#16213e',accent:'#0f7173',light:'#2ec4b6'},
+  {bg:'#1b2838',accent:'#c97d4e',light:'#f4a261'},
+  {bg:'#1a1a1a',accent:'#6c757d',light:'#adb5bd'},
+  {bg:'#1c1c2e',accent:'#7c3aed',light:'#a78bfa'},
+  {bg:'#0d2137',accent:'#0ea5e9',light:'#38bdf8'},
+];
+
+const DEFAULT_CATS = ['딥러닝','자연어처리','컴퓨터비전','강화학습','기타'];
+const DEFAULT_PAPERS = [
+  {id:1,category:'자연어처리',title:'Attention Is All You Need',summary:'트랜스포머 아키텍처를 소개한 논문. 어텐션 메커니즘만으로 sequence-to-sequence 태스크를 수행.',notes:'## 핵심 기여\n- Self-Attention 메커니즘\n- Multi-Head Attention\n- Positional Encoding\n\n## 의의\nRNN 없이도 병렬 처리가 가능하며, 장거리 의존성 포착에 뛰어남.',date:'2024-01-15'},
+  {id:2,category:'딥러닝',title:'Deep Residual Learning for Image Recognition',summary:'ResNet 제안. Skip connection을 통해 매우 깊은 네트워크 학습을 가능하게 함.',notes:'## 핵심 아이디어\nResidual block: F(x) + x\n\n깊이가 깊어질수록 vanishing gradient 문제를 skip connection으로 해결.',date:'2024-02-03'},
+];
+
+let state = {
+  categories: load('pv-cats', DEFAULT_CATS),
+  papers: load('pv-papers', DEFAULT_PAPERS),
+  activeCategory: '전체',
+  selectedId: null,
+  isEditing: false,
+};
+
+function load(key, def) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch { return def; }
+}
+function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
+function saveCats() { save('pv-cats', state.categories); }
+function savePapers() { save('pv-papers', state.papers); }
+
+function getColor(cat) {
+  const i = state.categories.indexOf(cat);
+  return COLOR_PALETTE[i >= 0 ? i % COLOR_PALETTE.length : 4];
+}
+
+// ── Filter ─────────────────────────────────────────────────────────
+function filtered() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  return state.papers.filter(p => {
+    const matchCat = state.activeCategory === '전체' || p.category === state.activeCategory;
+    const matchQ = !q || p.title.toLowerCase().includes(q) || (p.summary||'').toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+}
+
+function grouped() {
+  const result = {};
+  filtered().forEach(p => { (result[p.category] = result[p.category]||[]).push(p); });
+  return result;
+}
+
+// ── Render ─────────────────────────────────────────────────────────
+function render() {
+  renderCatBar();
+  renderPaperList();
+  renderStats();
+  renderModal();
+}
+
+function renderCatBar() {
+  const bar = document.getElementById('cat-bar');
+  const allCats = ['전체', ...state.categories];
+  bar.innerHTML = allCats.map(cat => {
+    const active = state.activeCategory === cat;
+    const c = cat !== '전체' ? getColor(cat) : null;
+    const style = active && c ? `background:${c.bg};border-color:${c.accent};color:${c.light}` : '';
+    const count = cat === '전체' ? '' : `<span style="margin-left:3px;opacity:0.5;font-size:9px">${state.papers.filter(p=>p.category===cat).length}</span>`;
+    return `<button class="cat-tab${active?' active':''}" style="${style}" onclick="setCategory('${cat}')">${cat}${count}</button>`;
+  }).join('') +
+  `<div class="add-cat-row">
+    <input type="text" id="new-cat-input" placeholder="새 카테고리..." onkeydown="if(event.key==='Enter')addCategory()">
+    <button class="btn" onclick="addCategory()">추가</button>
+  </div>`;
+}
+
+function renderPaperList() {
+  const list = document.getElementById('paper-list');
+  const g = grouped();
+  const cats = Object.keys(g);
+  if (!cats.length) {
+    list.innerHTML = `<div class="empty-list"><div class="icon">📭</div>논문이 없습니다</div>`;
+    return;
+  }
+  list.innerHTML = cats.map(cat => {
+    const c = getColor(cat);
+    const items = g[cat].map(p => {
+      const active = state.selectedId === p.id;
+      const borderColor = active ? c.accent : 'transparent';
+      return `<div class="paper-item${active?' active':''}" style="border-left-color:${borderColor}" onclick="selectPaper(${p.id})">
+        <button class="delete-btn" onclick="event.stopPropagation();deletePaper(${p.id})">×</button>
+        <div class="paper-item-title" style="${active?'color:'+c.light:''}">${escHtml(p.title)}</div>
+        ${p.summary ? `<div class="paper-item-summary">${escHtml(p.summary)}</div>` : ''}
+        <div class="paper-item-date">${p.date}</div>
+      </div>`;
+    }).join('');
+    return `<div class="cat-header" style="background:${c.bg}cc;border-left:3px solid ${c.accent};color:${c.light}">
+        ${cat} <span class="cat-count" style="background:${c.accent}">${g[cat].length}</span>
+      </div>${items}`;
+  }).join('');
+}
+
+function renderStats() {
+  document.getElementById('stats').innerHTML =
+    `전체 <span>${state.papers.length}</span>편 &nbsp; 카테고리 <span>${state.categories.length}</span>개`;
+}
+
+function renderModal() {
+  const sel = document.getElementById('form-cat');
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = state.categories.map(c => `<option value="${c}">${c}</option>`).join('');
+  if (prev && state.categories.includes(prev)) sel.value = prev;
+}
+
+function renderDetail() {
+  const main = document.getElementById('main');
+  const paper = state.papers.find(p => p.id === state.selectedId);
+  if (!paper) {
+    main.innerHTML = `<div class="main-empty"><div class="icon">📚</div><p>논문을 선택하세요</p></div>`;
+    return;
+  }
+  const c = getColor(paper.category);
+  const notesHtml = renderNotes(paper.notes);
+
+  main.innerHTML = `<div class="paper-detail">
+    <div class="detail-header">
+      <div class="detail-header-top">
+        <div style="flex:1">
+          <div class="cat-badge" style="background:${c.bg};border:1px solid ${c.accent};color:${c.light}">${paper.category}</div>
+          <div class="detail-title">${escHtml(paper.title)}</div>
+          ${paper.summary ? `<div class="detail-summary">${escHtml(paper.summary)}</div>` : ''}
+          <div class="detail-date">등록일: ${paper.date}</div>
+        </div>
+        <div class="detail-actions">
+          <span class="save-status" id="save-status"></span>
+          <button class="btn" id="cancel-btn" style="display:none" onclick="cancelEdit()">취소</button>
+          <button class="btn-accent" id="edit-save-btn" onclick="toggleEdit()">✏️ 편집</button>
+        </div>
+      </div>
+    </div>
+    <div class="notes-area">
+      <div class="notes-label">
+        <span>📝 읽기 노트</span>
+        <span class="hint" id="md-hint"></span>
+      </div>
+      <div id="notes-view" onclick="startEdit()">${notesHtml}</div>
+      <textarea id="notes-textarea" oninput="autoResize(this)">${escHtml(paper.notes||'')}</textarea>
+    </div>
+  </div>`;
+
+  if (state.isEditing) _activateEdit();
+}
+
+function renderNotes(notes) {
+  if (!notes || !notes.trim()) {
+    return `<div class="notes-rendered"><div class="empty-note"><span class="icon">📄</span>클릭하여 노트 작성 시작</div></div>`;
+  }
+  const lines = notes.split('\n').map(line => {
+    if (line.startsWith('# ')) return `<div class="h1">${escHtml(line.slice(2))}</div>`;
+    if (line.startsWith('## ')) return `<div class="h2">${escHtml(line.slice(3))}</div>`;
+    if (line.startsWith('- ')) return `<div class="li"><span class="bullet">▸</span><span>${escHtml(line.slice(2))}</span></div>`;
+    if (line === '') return `<div class="blank"></div>`;
+    return `<div>${escHtml(line)}</div>`;
+  });
+  return `<div class="notes-rendered">${lines.join('')}</div>`;
+}
+
+// ── Actions ────────────────────────────────────────────────────────
+function setCategory(cat) {
+  state.activeCategory = cat;
+  render();
+  renderDetail();
+}
+
+function selectPaper(id) {
+  if (state.isEditing && !confirm('저장하지 않은 변경사항이 있습니다. 이동하시겠습니까?')) return;
+  state.selectedId = id;
+  state.isEditing = false;
+  render();
+  renderDetail();
+}
+
+function deletePaper(id) {
+  if (!confirm('이 논문을 삭제하시겠습니까?')) return;
+  state.papers = state.papers.filter(p => p.id !== id);
+  savePapers();
+  if (state.selectedId === id) { state.selectedId = null; state.isEditing = false; }
+  render();
+  renderDetail();
+}
+
+function addCategory() {
+  const input = document.getElementById('new-cat-input');
+  const val = input.value.trim();
+  if (!val || state.categories.includes(val)) return;
+  state.categories.push(val);
+  saveCats();
+  input.value = '';
+  render();
+}
+
+function openModal() {
+  document.getElementById('modal').classList.add('open');
+  setTimeout(() => document.getElementById('form-title').focus(), 100);
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  document.getElementById('form-title').value = '';
+  document.getElementById('form-summary').value = '';
+}
+
+function addPaper() {
+  const title = document.getElementById('form-title').value.trim();
+  if (!title) return;
+  const cat = document.getElementById('form-cat').value;
+  const summary = document.getElementById('form-summary').value.trim();
+  const today = new Date().toISOString().split('T')[0];
+  state.papers.push({ id: Date.now(), category: cat, title, summary, notes: '', date: today });
+  savePapers();
+  closeModal();
+  render();
+}
+
+function toggleEdit() {
+  if (state.isEditing) {
+    saveNotes();
+  } else {
+    startEdit();
+  }
+}
+
+function startEdit() {
+  state.isEditing = true;
+  _activateEdit();
+}
+
+function _activateEdit() {
+  const view = document.getElementById('notes-view');
+  const textarea = document.getElementById('notes-textarea');
+  const editBtn = document.getElementById('edit-save-btn');
+  const cancelBtn = document.getElementById('cancel-btn');
+  const hint = document.getElementById('md-hint');
+  if (!view || !textarea) return;
+  view.style.display = 'none';
+  textarea.style.display = 'flex';
+  textarea.style.flex = '1';
+  if (editBtn) editBtn.textContent = '💾 저장';
+  if (cancelBtn) cancelBtn.style.display = '';
+  if (hint) hint.textContent = 'Markdown 형식 지원';
+  textarea.focus();
+}
+
+function cancelEdit() {
+  state.isEditing = false;
+  renderDetail();
+}
+
+function saveNotes() {
+  const textarea = document.getElementById('notes-textarea');
+  if (!textarea) return;
+  const notes = textarea.value;
+  state.papers = state.papers.map(p => p.id === state.selectedId ? {...p, notes} : p);
+  savePapers();
+  state.isEditing = false;
+  renderDetail();
+  const status = document.getElementById('save-status');
+  if (status) { status.textContent = '저장됨 ✓'; setTimeout(() => { if(status) status.textContent=''; }, 3000); }
+}
+
+function autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's' && state.isEditing) { e.preventDefault(); saveNotes(); }
+  if (e.key === 'Escape') { if (document.getElementById('modal').classList.contains('open')) closeModal(); }
+});
+
+// Modal form Enter key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('modal').classList.contains('open')) {
+    if (document.activeElement.id === 'form-title') addPaper();
+  }
+});
+
+// Init
+render();
+renderDetail();
+</script>
+</body>
+</html>
